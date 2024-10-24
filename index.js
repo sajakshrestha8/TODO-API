@@ -21,8 +21,28 @@ sqlconnection.connect((err) => {
 });
 
 app.post("/addtask", (req, res) => {
-  let payload = req.body;
-  res.send(payload);
+  let { id, Title, Expiry_Date, Created_Date, Updated_Date, Status } = req.body;
+  sqlconnection.query(
+    `INSERT INTO todo_list (id, Title, Expiry__Date, Created_Date, Updated_Date, Status) VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, Title, Expiry_Date, Created_Date, Updated_Date, Status],
+    (err, result) => {
+      if (result) {
+        res.send(result);
+      } else {
+        res.send(err);
+      }
+    }
+  );
+});
+
+app.post("/viewtask", (req, res) => {
+  sqlconnection.query("SELECT * FROM todo_list", (err, result) => {
+    if (result) {
+      res.send(result);
+    } else {
+      res.send(err);
+    }
+  });
 });
 
 app.listen(Port, () => console.log("Server is running in port", Port));
