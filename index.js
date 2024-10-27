@@ -6,23 +6,26 @@ const { where } = require("sequelize");
 const { FORCE } = require("sequelize/lib/index-hints");
 const morgan = require("morgan");
 const rateimit = require("express-rate-limit");
-
-let id;
-let Status;
-
 const app = express();
 const Port = 8000;
 
-app.use(morgan("dev"));
-app.use(express.json());
-
+//rate limmiter
 const limiter = rateimit.rateLimit({
   windowMs: 60 * 1000,
-  limit: 5,
+  limit: 10,
+  message: "Too many request send, wait for few minutes",
 });
 
+//variables
+let id;
+let Status;
+
+//middlewares
+app.use(morgan("dev"));
+app.use(express.json());
 app.use(limiter);
 
+//Request for adding the task
 app.post("/addtask", (req, res) => {
   let { id, Title, Expiry_Date, Created_Date, Updated_Date, Status } = req.body;
   sequelize.sync().then(() => {
@@ -45,6 +48,7 @@ app.post("/addtask", (req, res) => {
   });
 });
 
+//Request for viewing the task
 app.get("/viewtask", (req, res) => {
   sequelize
     .sync()
@@ -62,6 +66,7 @@ app.get("/viewtask", (req, res) => {
     });
 });
 
+//Request for deleting the task
 app.delete("/deletetask", (req, res) => {
   let { reqid } = req.body;
   console.log(reqid);
@@ -82,6 +87,7 @@ app.delete("/deletetask", (req, res) => {
   });
 });
 
+//Request for updadting the task
 app.put("/updatetask", (req, res) => {
   let { id, Title, checkbox } = req.body;
   Status = checkbox ? "completed" : "pending";
