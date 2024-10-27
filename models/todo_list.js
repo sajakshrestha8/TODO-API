@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize");
 const sequilize = require("../utils/database");
 
-const todo = sequilize.define("test", {
+const todo = sequilize.define("tests", {
   id: {
     type: Sequelize.INTEGER,
     autoIncrement: true,
@@ -29,7 +29,10 @@ const todo = sequilize.define("test", {
     allowNull: false,
     defaultValue: Sequelize.NOW,
   },
-  Staus: {
+  checkbox: {
+    type: Sequelize.BOOLEAN,
+  },
+  Status: {
     type: Sequelize.STRING,
     allowNull: false,
     defaultValue: "pending",
