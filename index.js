@@ -1,7 +1,9 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const sequelize = require("./utils/database");
 const todo = require("./models/todo_list");
-const sequilize = require("./utils/database");
+const user = require("./models/User_list.js");
+const verifyToken = require("./middleware/Tokenverification");
 const { where } = require("sequelize");
 const { FORCE } = require("sequelize/lib/index-hints");
 const morgan = require("morgan");
@@ -24,6 +26,9 @@ let Status;
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(limiter);
+
+//One-Many Relation
+user.hasMany(todo);
 
 //Request for adding the task
 app.post("/addtask", (req, res) => {
@@ -49,7 +54,7 @@ app.post("/addtask", (req, res) => {
 });
 
 //Request for viewing the task
-app.get("/viewtask", (req, res) => {
+app.get("/viewtask", verifyToken, (req, res) => {
   sequelize
     .sync()
     .then(() => {
@@ -102,6 +107,50 @@ app.put("/updatetask", (req, res) => {
     );
   });
   res.send(Status);
+});
+
+app.post("/register", (req, res) => {
+  let { id } = req.body;
+  sequelize.sync().then(() => {
+    return user
+      .create({
+        Uid: 1,
+        User: "Sajak Shrestha",
+        password: "123",
+      })
+      .then(() => {
+        res.send("La hai user add huna parxa aba");
+      })
+      .catch((err) => {
+        res.send(err);
+      });
+  });
+});
+
+//route for login
+app.post("/login", async (req, res) => {
+  let { username, password } = req.body;
+  let auth = await user.findOne({
+    where: {
+      User: username,
+      password: password,
+    },
+  });
+  try {
+    if (auth) {
+      const token = jwt.sign({ User: username.id }, "sajak", {
+        expiresIn: "1h",
+      });
+      res.json({
+        message: "Login successfull",
+        token: token,
+      });
+    } else {
+      res.send("login vayena hai sathi");
+    }
+  } catch (error) {
+    res.send(err);
+  }
 });
 
 app.listen(Port, () => console.log("Server is running in port", Port));
