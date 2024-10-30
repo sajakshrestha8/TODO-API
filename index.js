@@ -4,9 +4,10 @@ const sequelize = require("./utils/database");
 const todo = require("./models/todo_list");
 const user = require("./models/User_list.js");
 const verifyToken = require("./middleware/Tokenverification");
-const { where } = require("sequelize");
+const { where, DATE } = require("sequelize");
 const { FORCE } = require("sequelize/lib/index-hints");
 const morgan = require("morgan");
+const cron = require("node-cron");
 const rateimit = require("express-rate-limit");
 const sequilize = require("./utils/database");
 const app = express();
@@ -30,6 +31,29 @@ app.use(limiter);
 
 //One-Many Relation
 user.hasMany(todo);
+
+console.log("Checking");
+
+//testing the node-cron
+cron.schedule("*/30 * * * *", async () => {
+  try {
+    let updatedDate = await todo.update(
+      {
+        Status: "expired",
+      },
+      {
+        where: {
+          Expiry_Date: {
+            [sequelize.Op.lt]: new Date(),
+          },
+          Status: "pending",
+        },
+      }
+    );
+  } catch (err) {
+    res.send(err);
+  }
+});
 
 //Request for adding the task
 app.post("/addtask", verifyToken, (req, res) => {
@@ -82,18 +106,20 @@ app.delete("/deletetask", verifyToken, (req, res) => {
   console.log(reqid);
 
   sequelize.sync().then(() => {
-    return todo
-      .destroy({
-        where: {
-          id: reqid,
-        },
-      })
-      .then((data) => {
-        res.send(" Deleted successfully");
-      })
-      .catch((er) => {
-        res.send(er);
-      });
+    try {
+      return todo
+        .destroy({
+          where: {
+            id: reqid,
+            UserId: req.userId,
+          },
+        })
+        .then((data) => {
+          res.send("Deleted successfully");
+        });
+    } catch (error) {
+      res.send(error);
+    }
   });
 });
 
@@ -101,17 +127,31 @@ app.delete("/deletetask", verifyToken, (req, res) => {
 app.put("/updatetask", verifyToken, (req, res) => {
   let { id, Title, checkbox } = req.body;
   Status = checkbox ? "completed" : "pending";
-  sequelize.sync().then(() => {
-    return todo.update(
-      { Title: Title, checkbox: checkbox, Status: Status },
-      {
-        where: {
-          id: id,
-        },
+  sequelize
+    .sync()
+    .then(() => {
+      return todo.update(
+        { Title: Title, checkbox: checkbox, Status: Status },
+        {
+          where: {
+            id: id,
+            UserId: req.userId,
+          },
+        }
+      );
+    })
+    .then((result) => {
+      console.log(result);
+      if (result[0] === 0) {
+        res
+          .status(401)
+          .send(
+            "Either the task is not found or the user doesn't own the task"
+          );
+      } else {
+        res.status(200).send("Task updated successfully");
       }
-    );
-  });
-  res.send(Status);
+    });
 });
 
 //route for register
@@ -135,8 +175,12 @@ app.post("/register", (req, res) => {
 //route to view all task
 app.get("/viewalltask", (req, res) => {
   sequilize.sync().then(() => {
-    return combinedTable
-      .findAll()
+    return todo
+      .findAll({
+        where: {
+          Status: "pending" || "expired",
+        },
+      })
       .then((data) => {
         res.json(data);
       })
