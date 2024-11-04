@@ -217,3 +217,5 @@ app.post("/login", async (req, res) => {
 });
 
 app.listen(Port, () => console.log("Server is running in port", Port));
+
+module.exports = app;
