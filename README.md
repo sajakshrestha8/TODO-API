@@ -44,12 +44,12 @@ Authentication: JSON Web Tokens (JWT) for securing API endpoints.
    npm run server
 
 ## API Endpoints
-POST /api/register: Register a new user.
-POST /api/login: Authenticate a user and receive a token.
-GET /api/viewusertask: Retrieve all tasks for the authenticated user.
-GET /api/viewalltask: Retrieve all tasks that are for expired.
-POST /api/addtask: Add a new task.
-PUT /api/updatetask: Update an existing task.
+POST /api/register: Register a new user.<br />
+POST /api/login: Authenticate a user and receive a token.<br />
+GET /api/viewusertask: Retrieve all tasks for the authenticated user.<br />
+GET /api/viewalltask: Retrieve all tasks that are for expired.<br />
+POST /api/addtask: Add a new task.<br />
+PUT /api/updatetask: Update an existing task.<br />
 DELETE /api/deletetask: Delete a task.
 
 ## Contributing
