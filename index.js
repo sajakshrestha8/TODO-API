@@ -4,7 +4,7 @@ const sequelize = require("./utils/database");
 const todo = require("./models/todo_list");
 const user = require("./models/User_list.js");
 const verifyToken = require("./middleware/Tokenverification");
-const { where, DATE } = require("sequelize");
+const { Op } = require("sequelize");
 const { FORCE } = require("sequelize/lib/index-hints");
 const morgan = require("morgan");
 const cron = require("node-cron");
@@ -32,10 +32,9 @@ app.use(limiter);
 //One-Many Relation
 user.hasMany(todo);
 
-console.log("Checking");
-
 //testing the node-cron
-cron.schedule("*/30 * * * *", async () => {
+cron.schedule("* * * * *", async () => {
+  console.log("Checking if there is any task that is expired");
   try {
     let updatedDate = await todo.update(
       {
@@ -44,14 +43,14 @@ cron.schedule("*/30 * * * *", async () => {
       {
         where: {
           Expiry_Date: {
-            [sequelize.Op.lt]: new Date(),
+            [Op.lt]: new Date(),
           },
           Status: "pending",
         },
       }
     );
   } catch (err) {
-    res.send(err);
+    console.log(err);
   }
 });
 

@@ -14,18 +14,18 @@ const todo = sequilize.define("tests", {
   },
   Expiry_Date: {
     type: Sequelize.DATE,
-    timestampes: true,
+    timestamps: true,
     allowNull: false,
   },
   Created_Date: {
     type: Sequelize.DATE,
-    timestampes: true,
+    timestamps: true,
     allowNull: false,
     defaultValue: Sequelize.NOW,
   },
   Updated_Date: {
     type: Sequelize.DATE,
-    timestampes: true,
+    timestamps: true,
     allowNull: false,
     defaultValue: Sequelize.NOW,
   },
