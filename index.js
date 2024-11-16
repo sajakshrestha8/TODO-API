@@ -5,11 +5,12 @@ const todo = require("./models/todo_list");
 const user = require("./models/User_list.js");
 const verifyToken = require("./middleware/Tokenverification");
 const { Op } = require("sequelize");
-const { FORCE } = require("sequelize/lib/index-hints");
 const morgan = require("morgan");
 const cron = require("node-cron");
 const rateimit = require("express-rate-limit");
 const sequilize = require("./utils/database");
+const sse = require("sse");
+const http = require("http");
 const app = express();
 const Port = 8000;
 
@@ -23,6 +24,7 @@ const limiter = rateimit.rateLimit({
 //variables
 let id;
 let Status;
+let updatedDate;
 
 //middlewares
 app.use(morgan("dev"));
@@ -36,7 +38,7 @@ user.hasMany(todo);
 cron.schedule("* * * * *", async () => {
   console.log("Checking if there is any task that is expired");
   try {
-    let updatedDate = await todo.update(
+    updatedDate = await todo.update(
       {
         Status: "expired",
       },
@@ -52,6 +54,20 @@ cron.schedule("* * * * *", async () => {
   } catch (err) {
     console.log(err);
   }
+});
+
+//creating a SSE server
+app.get("/sseevents", (req, res) => {
+  res.writeHead(200, { "Content-Type": "text/event-stream" });
+  res.write("Data" + "Hello there!!\n\n");
+
+  let i = 0;
+
+  setInterval(() => {
+    if (updatedDate === "expired") {
+      res.write("Task has been expired");
+    }
+  }, 1000);
 });
 
 //Request for adding the task
@@ -177,7 +193,7 @@ app.get("/viewalltask", (req, res) => {
     return todo
       .findAll({
         where: {
-          Status: "pending" || "expired",
+          Status: ["pending", "completed"],
         },
       })
       .then((data) => {
