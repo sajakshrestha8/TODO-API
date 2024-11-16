@@ -4,13 +4,12 @@ const sequelize = require("./utils/database");
 const todo = require("./models/todo_list");
 const user = require("./models/User_list.js");
 const verifyToken = require("./middleware/Tokenverification");
-const { Op } = require("sequelize");
+const { Op, where } = require("sequelize");
 const morgan = require("morgan");
 const cron = require("node-cron");
 const rateimit = require("express-rate-limit");
 const sequilize = require("./utils/database");
-const sse = require("sse");
-const http = require("http");
+const { messaging } = require("firebase-admin");
 const app = express();
 const Port = 8000;
 
@@ -24,7 +23,8 @@ const limiter = rateimit.rateLimit({
 //variables
 let id;
 let Status;
-let updatedDate;
+let expiredTasks = [];
+let activeClients = [];
 
 //middlewares
 app.use(morgan("dev"));
@@ -38,7 +38,7 @@ user.hasMany(todo);
 cron.schedule("* * * * *", async () => {
   console.log("Checking if there is any task that is expired");
   try {
-    updatedDate = await todo.update(
+    let updatedTask = await todo.update(
       {
         Status: "expired",
       },
@@ -51,29 +51,38 @@ cron.schedule("* * * * *", async () => {
         },
       }
     );
+
+    const notification = {
+      message: "Task expired vako xa hai",
+    };
+
+    activeClients.forEach((client) =>
+      client.write(`data: ${JSON.stringify(notification)}\n\n`)
+    );
+
+    console.log(notification);
   } catch (err) {
     console.log(err);
   }
 });
 
 //creating a SSE server
-app.get("/sseevents", (req, res) => {
-  res.writeHead(200, { "Content-Type": "text/event-stream" });
-  res.write("Data" + "Hello there!!\n\n");
+app.get("/sseevents", async (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    Connection: "keep-alive",
+  });
+  activeClients.push(res);
 
-  let i = 0;
-
-  setInterval(() => {
-    if (updatedDate === "expired") {
-      res.write("Task has been expired");
-    }
-  }, 1000);
+  req.on("close", () => {
+    const index = activeClients.indexOf(res);
+    if (index !== -1) activeClients.splice(index, 1);
+  });
 });
 
 //Request for adding the task
 app.post("/addtask", verifyToken, (req, res) => {
-  let { id, Title, Expiry_Date, Created_Date, Updated_Date, Status, UserId } =
-    req.body;
+  let { id, Title, Expiry_Date, Created_Date, Updated_Date, Status } = req.body;
   sequelize.sync().then(() => {
     todo
       .create({
@@ -220,7 +229,10 @@ app.post("/login", async (req, res) => {
         expiresIn: "1h",
       });
       res.json({
-        message: "Login successfull",
+        message:
+          expiredTasks.length > 0
+            ? "You have some expired Task"
+            : "You have no any expired task",
         token: token,
       });
     } else {
