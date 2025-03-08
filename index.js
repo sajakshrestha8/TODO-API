@@ -66,6 +66,10 @@ cron.schedule("* * * * *", async () => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("hello");
+});
+
 //creating a SSE server
 app.get("/sseevents", async (req, res) => {
   res.writeHead(200, {
